@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useQuery, queryOptions } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useQuery, queryOptions, keepPreviousData } from '@tanstack/react-query';
 import ReactPaginate from 'react-paginate';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, toast } from 'react-hot-toast';
 import css from './App.module.css';
 import SearchBar from '../SearchBar/SearchBar';
 import MovieGrid from '../MovieGrid/MovieGrid';
@@ -16,15 +16,26 @@ export default function App() {
   const [page, setPage] = useState(1);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
-  const { data, isError, isLoading } = useQuery(
+  const {
+    data,
+    isError,
+    isLoading,
+    isSuccess,
+  } = useQuery(
     queryOptions({
       queryKey: ['movies', query, page],
       queryFn: () => fetchMovies({ query, page }),
       enabled: query !== '',
-      //staleTime: 1000 * 60, 
-      //gcTime: 1000 * 60 * 5,
+      placeholderData: keepPreviousData, 
     })
   );
+
+ 
+  useEffect(() => {
+    if (isSuccess && data.results.length === 0) {
+      toast('Фільми не знайдені');
+    }
+  }, [isSuccess, data]);
 
   const handleSearch = (newQuery: string) => {
     setQuery(newQuery);
@@ -43,7 +54,7 @@ export default function App() {
       <main>
         {isError && <ErrorMessage />}
 
-        {data && data.results.length > 0 && (
+        {isSuccess && data.results.length > 0 && (
           <>
             {totalPages > 1 && (
               <ReactPaginate
